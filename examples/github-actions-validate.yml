@@ -1,0 +1,67 @@
+name: Kubernetes Manifest Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - '**.yaml'
+      - '**.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '**.yaml'
+      - '**.yml'
+
+jobs:
+  validate:
+    name: Validate Kubernetes Manifests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install kubeval
+      run: |
+        wget https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz
+        tar xf kubeval-linux-amd64.tar.gz
+        sudo mv kubeval /usr/local/bin
+
+    - name: Validate YAML syntax
+      run: |
+        for file in *.yaml; do
+          echo "Validating $file..."
+          python3 -c "import yaml; yaml.safe_load(open('$file'))" || exit 1
+        done
+
+    - name: Validate Kubernetes manifests
+      run: |
+        for file in *.yaml; do
+          if [ "$file" != "app-secret.yaml" ]; then
+            echo "Validating Kubernetes manifest: $file"
+            kubeval --strict --ignore-missing-schemas "$file" || exit 1
+          fi
+        done
+
+    - name: Check for best practices
+      run: |
+        echo "Checking for resource limits..."
+        for file in *deploy*.yaml; do
+          if ! grep -q "resources:" "$file"; then
+            echo "Warning: $file does not have resource limits defined"
+          fi
+        done
+
+    - name: Security scan with Trivy
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'config'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy results to GitHub Security
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
