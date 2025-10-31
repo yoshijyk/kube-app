@@ -1,0 +1,40 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: dev
+
+bases:
+  - ../../base
+
+namePrefix: dev-
+
+commonLabels:
+  environment: development
+
+replicas:
+  - name: vproapp
+    count: 1
+  - name: vprodb
+    count: 1
+
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: vproapp
+      spec:
+        template:
+          spec:
+            containers:
+            - name: vproapp
+              resources:
+                requests:
+                  memory: "256Mi"
+                  cpu: "250m"
+                limits:
+                  memory: "512Mi"
+                  cpu: "500m"
+    target:
+      kind: Deployment
+      name: vproapp

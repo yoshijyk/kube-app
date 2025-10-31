@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: vproapp-metrics
+  labels:
+    app: vproapp
+spec:
+  selector:
+    matchLabels:
+      app: vproapp
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vproapp-metrics
+  labels:
+    app: vproapp
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+    prometheus.io/path: "/metrics"
+spec:
+  selector:
+    app: vproapp
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-vproapp
+  labels:
+    grafana_dashboard: "1"
+data:
+  vproapp-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "VProfile Application Dashboard",
+        "tags": ["vproapp"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "title": "HTTP Request Rate",
+            "targets": [
+              {
+                "expr": "rate(http_requests_total{app=\"vproapp\"}[5m])"
+              }
+            ]
+          },
+          {
+            "title": "Response Time",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{app=\"vproapp\"}[5m]))"
+              }
+            ]
+          },
+          {
+            "title": "Error Rate",
+            "targets": [
+              {
+                "expr": "rate(http_requests_total{app=\"vproapp\",status=~\"5..\"}[5m])"
+              }
+            ]
+          },
+          {
+            "title": "Pod CPU Usage",
+            "targets": [
+              {
+                "expr": "rate(container_cpu_usage_seconds_total{pod=~\"vproapp-.*\"}[5m])"
+              }
+            ]
+          },
+          {
+            "title": "Pod Memory Usage",
+            "targets": [
+              {
+                "expr": "container_memory_working_set_bytes{pod=~\"vproapp-.*\"}"
+              }
+            ]
+          }
+        ]
+      }
+    }
