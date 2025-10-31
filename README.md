@@ -64,7 +64,11 @@ kubectl apply -f vproapp-service.yaml
 
 ## GitHub Copilot Agentsについて
 
-このリポジトリでGitHub Copilot Agentsを活用する方法については、[AGENTS.md](./AGENTS.md)をご覧ください。
+このリポジトリでGitHub Copilot Agentsを活用する方法については、以下のドキュメントをご覧ください：
+
+- **[クイックスタートガイド](./QUICKSTART.md)** - すぐに始められる基本的な使い方
+- **[詳細ガイド](./AGENTS.md)** - Agentsの全機能と実践的なユースケース
+- **[サンプル集](./examples/)** - 実用的な設定例とテンプレート
 
 ## 注意事項
 
